@@ -3,43 +3,80 @@ var fs = require("fs");
 var url = require("url");
 var path = require("path");
 var port = process.argv[2] || 8000;
-var files = [];
 
 port = parseInt(port, 10);
 
-var server = http.createServer((req, res) => {
-
-    console.log(req.method + " " + req.url + " " + req.httpVersion);
+http.createServer((req, res) => {
 
     try{
+        var files = [];
+        var body = [];
+
         var uri = url.parse(req.url)
-        
+        var pathname = `.${uri.pathname}`;
+        var ext = path.parse(pathname).ext;
 
         var contentTypesByExtensions = {
-            '.html' : "text/html",
-            '.css' : "text/css",
-            '.js' : "javascript"
+            '.ico': 'image/x-icon',
+            '.html': 'text/html',
+            '.js': 'text/javascript',
+            '.json': 'application/json',
+            '.css': 'text/css',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.wav': 'audio/wav',
+            '.mp3': 'audio/mpeg',
+            '.svg': 'image/svg+xml',
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword'
         };
-            // if(fs.statSync(fsPath).isDirectory()){
-            //     fsPath += '/index.html';
-            // }
-            var fsPath = uri.pathname.substring(1)
-            var fileStream = fs.createReadStream(fsPath)
-            fileStream.pipe(res)
-            fileStream.on('open', function() {
-            res.writeHead(200)
-            })
-            fileStream.on('error', function(){
-                fs.readdir(fsPath.path, function(err,list){
-                    if(err) throw err;
-                    for(var i=0; i<list.length; i++)
-                    {
-                        path.extname(list[i])
-                        console.log(list[i]); //print the file
-                        files.push(list[i]); //store the file name into the array files
-                    }
-                });
-            })
+
+        req.on('error', (err) => {
+            console.log(err);
+        }).on('data', (chunk) => {
+            body.push(chunk);
+        }).on('end', () => {
+            body = Buffer.concat(body).toString();
+        });
+
+        console.log(req.method + " " + req.url + " " + req.httpVersion + " " + contentTypesByExtensions[ext]);
+        console.log(body);
+
+        fs.exists(pathname, function (exist) {
+            if(!exist) {
+              res.statusCode = 404;
+              res.end(`File ${pathname} not found!`);
+              return;
+            }
+            if (fs.statSync(pathname).isDirectory()){
+                pathname += '/index.html';
+            }
+
+            fs.readFile(pathname, function(err, data){
+                if(err){
+                //   res.statusCode = 500;
+                //   res.end(`Error getting the file: ${err}.`);
+                pathname = pathname.slice (0, -11);
+                console.log(pathname);
+                fs.readdir(pathname, function(err,list){
+                            if(err) throw err;
+                            //files = [];
+                            for(var i=0; i<list.length; i++)
+                            {
+                                path.extname(list[i])
+                                //console.log(list[i]); //print the file
+                                files.push(list[i]);
+                                files.sort();
+                            }
+                                res.writeHead(200, 'Content-type', 'text/plain');
+                                res.end(files.join('\n'));
+                        });
+                } else {
+                  res.writeHead(200, 'Content-type', contentTypesByExtensions[ext] || 'text/plain');
+                  res.end(data);
+                }
+            });
+        });
     } catch(e) {
         res.writeHead(404)
         res.end("404 Error occured when reading file")
