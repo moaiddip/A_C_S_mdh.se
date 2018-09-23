@@ -12,8 +12,8 @@ http.createServer((req, res) => {
         var files = [];
         var body = [];
 
-        var uri = url.parse(req.url)
-        var pathname = `.${uri.pathname}`;
+        var uri = url.parse(req.url, true);
+        var pathname = decodeURIComponent(`.${uri.pathname}`);
         var ext = path.parse(pathname).ext;
 
         var contentTypesByExtensions = {
@@ -40,7 +40,7 @@ http.createServer((req, res) => {
         });
 
         console.log(req.method + " " + req.url + " " + req.httpVersion + " " + contentTypesByExtensions[ext]);
-        console.log(body);
+        //console.log(body);
 
         fs.exists(pathname, function (exist) {
             if(!exist) {
