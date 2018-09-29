@@ -6,11 +6,12 @@ var port = process.argv[2] || 8000;
 
 port = parseInt(port, 10);
 
+let body = [];
+
 http.createServer((req, res) => {
 
     try{
         var files = [];
-        var body = [];
 
         var uri = url.parse(req.url, true);
         var pathname = decodeURIComponent(`.${uri.pathname}`);
@@ -37,10 +38,13 @@ http.createServer((req, res) => {
             body.push(chunk);
         }).on('end', () => {
             body = Buffer.concat(body).toString();
+            console.log(req.method + " " + req.url + " " + req.httpVersion + " " + contentTypesByExtensions[ext]);
+            
+            if(body){
+                console.log(decodeURIComponent(`.${body}`));
+            }
+        body = [];
         });
-
-        console.log(req.method + " " + req.url + " " + req.httpVersion + " " + contentTypesByExtensions[ext]);
-        //console.log(body);
 
         fs.exists(pathname, function (exist) {
             if(!exist) {
